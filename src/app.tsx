@@ -1,135 +1,39 @@
-import * as React from "react";
-import "./styles.css";
-import { createMachine, assign, MachineConfig } from "xstate";
-import { useMachine, useService } from "@xstate/react";
-import {
-  IonList,
-  IonItem,
-  IonApp,
-  IonPage,
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-  IonLoading
-} from "@ionic/react";
+import React from "react";
+import { Redirect, Route } from "react-router-dom";
+import { IonApp, IonRouterOutlet } from "@ionic/react";
+import { IonReactRouter } from "@ionic/react-router";
 
-const createDirectoryMachine = ({
-  fetch,
-  folderPath
-}: any): MachineConfig<any, any, any> =>
-  createMachine({
-    id: "folder",
-    context: {
-      filesAndDirectories: [],
-      currentSubItem: ""
-    },
-    initial: "loading",
-    states: {
-      loading: {
-        invoke: {
-          id: "fetchFolders",
-          src: () => fetch(`contents${folderPath}`),
-          onDone: {
-            target: "ready",
-            actions: assign({
-              filesAndDirectories: (_, { data }) => data
-            })
-          }
-        }
-      },
-      ready: {
-        on: {
-          OPEN: {
-            target: "focussedOnSub",
-            actions: assign({ currentSubItem: (_, { path }) => path })
-          }
-        }
-      },
-      focussedOnSub: {
-        invoke: {
-          id: "subFolder",
-          src: ({ currentSubItem }) =>
-            createDirectoryMachine({ fetch, folderPath: currentSubItem })
-        }
-      }
-    }
-  });
+/* Core CSS required for Ionic components to work properly */
+import "@ionic/react/css/core.css";
 
-// const createAppMachine = ({ fetchFolders }) => {
-//   return createMachine({
-//     id: "app",
-//     initial: "ready",
-//     states: {
-//       fetchingInitialFolder: {
-//         invoke: {
-//           src: createFolderMachine({ fetchFolders })
-//         }
-//       },
-//       ready: {}
-//     }
-//   });
-// };
+/* Basic CSS for apps built with Ionic */
+import "@ionic/react/css/normalize.css";
+import "@ionic/react/css/structure.css";
+import "@ionic/react/css/typography.css";
 
-export const App = ({ fetch }) => {
-  return (
-    <IonApp>
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Github Explorer</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-        <FileBrowser fetch={fetch} />
-      </IonPage>
-    </IonApp>
-  );
-};
+/* Optional CSS utils that can be commented out */
+import "@ionic/react/css/padding.css";
+import "@ionic/react/css/float-elements.css";
+import "@ionic/react/css/text-alignment.css";
+import "@ionic/react/css/text-transformation.css";
+import "@ionic/react/css/flex-utils.css";
+import "@ionic/react/css/display.css";
 
-const FileBrowser = ({ fetch, folderPath = "/" }) => {
-  const [current, send] = useMachine(
-    createDirectoryMachine({ fetch, folderPath })
-  );
+/* Theme variables */
+import "./theme/variables.css";
+import { Browser } from "./pages/browser";
 
-  const { filesAndDirectories, currentSubItem } = current.context;
+const App = ({ fetch, machine }) => (
+  <IonApp>
+    <IonReactRouter>
+      <IonRouterOutlet>
+        <Route path="/browser" exact={true}>
+          <Browser fetch={fetch} machine={machine} />
+        </Route>
+        <Route exact path="/" render={() => <Redirect to="/browser" />} />
+      </IonRouterOutlet>
+    </IonReactRouter>
+  </IonApp>
+);
 
-  if (current.matches("loading")) {
-    return (
-      <IonContent>
-        <IonLoading isOpen message="Loading..." />
-      </IonContent>
-    );
-  }
-
-  // Recurse case
-  if (current.matches("focussedOnSub")) {
-    return <FileBrowser fetch={fetch} folderPath={currentSubItem} />;
-  }
-
-  return (
-    <IonContent>
-      <IonList>
-        {filesAndDirectories.map(item => {
-          return <File key={item.path} item={item} send={send} />;
-        })}
-      </IonList>
-    </IonContent>
-  );
-};
-
-const File = ({ item, send }) => {
-  return (
-    <IonItem
-      key={item.path}
-      onClick={() => {
-        send({ type: "OPEN", path: item.path });
-      }}
-    >
-      {item.name}
-    </IonItem>
-  );
-};
-
-const Directory = () => {
-  return <div>A folder</div>;
-};
+export default App;

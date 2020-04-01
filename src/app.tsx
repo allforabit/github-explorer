@@ -1,6 +1,6 @@
 import React from "react";
 import { Redirect, Route } from "react-router-dom";
-import { IonApp, IonRouterOutlet } from "@ionic/react";
+import { IonApp, IonRouterOutlet, IonContent, IonPage } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 
 /* Core CSS required for Ionic components to work properly */
@@ -22,18 +22,39 @@ import "@ionic/react/css/display.css";
 /* Theme variables */
 import "./theme/variables.css";
 import { Browser } from "./pages/browser";
+import { createMachine } from "xstate";
+import { createPagesMachine, Pages } from "./pages/pages";
+import { useService, useMachine } from "@xstate/react";
 
-const App = ({ fetch, machine }) => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route path="/browser" exact={true}>
-          <Browser fetch={fetch} machine={machine} />
-        </Route>
-        <Route exact path="/" render={() => <Redirect to="/browser" />} />
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
-);
+interface AppContext {}
 
-export default App;
+type AppEvent = any;
+
+type AppState = {
+  value: "contents" | "issues";
+  context: AppContext;
+};
+
+// The root machine
+export const createAppMachine = ({ pagesMachine }) =>
+  createMachine<AppContext, AppEvent, AppState>({
+    id: "app",
+    initial: "ready",
+    states: {
+      ready: {
+        invoke: {
+          id: "pages",
+          src: pagesMachine
+        }
+      }
+    }
+  });
+
+export const App = ({ appMachine }) => {
+  const [current] = useMachine(appMachine);
+  return (
+    <IonApp>
+      <Pages pagesRef={current.children.pages} />
+    </IonApp>
+  );
+};

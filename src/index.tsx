@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import App from "./app";
+import { App, createAppMachine } from "./app";
 import * as serviceWorker from "./serviceWorker";
 import { config, Config } from "./config";
 import { createDirectoryMachine } from "./pages/browser";
+import { createPagesMachine } from "./pages/pages";
 
 const createFetch = (config: Config) => (path: string) => {
   return fetch(
@@ -16,8 +17,18 @@ const directoryMachine = createDirectoryMachine({
   folderPath: "/"
 });
 
+const appMachine = createAppMachine({
+  pagesMachine: createPagesMachine({
+    filesMachine: createDirectoryMachine({
+      fetch: createFetch(config),
+      folderPath: "/"
+    }),
+    issuesMachine: Promise.resolve("Hi")
+  })
+});
+
 ReactDOM.render(
-  <App fetch={createFetch(config)} machine={directoryMachine} />,
+  <App appMachine={appMachine} />,
   document.getElementById("root")
 );
 

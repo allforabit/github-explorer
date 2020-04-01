@@ -100,11 +100,10 @@ export const createDirectoryMachine = ({
     }
   });
 
-export const Browser = ({ fetch, machine }) => {
-  const [_, __, service]: any = useMachine(machine);
+export const Browser = ({ filesRef }) => {
   return (
     <IonApp>
-      <FileBrowser fetch={fetch} browserRef={service} isRoot={true} />
+      <FileBrowser fetch={fetch} browserRef={filesRef} isRoot={true} />
     </IonApp>
   );
 };

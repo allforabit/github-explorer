@@ -6,7 +6,7 @@ import {
   IonList,
   IonMenuButton,
   IonTitle,
-  IonToolbar
+  IonToolbar,
 } from "@ionic/react";
 import { useService } from "@xstate/react";
 import * as React from "react";
@@ -33,7 +33,7 @@ interface IssuesMachineParams {
 
 export const createIssuesMachine = ({
   fetch,
-  issueDetailsMachine
+  issueDetailsMachine,
 }: IssuesMachineParams): StateMachine<
   IssuesContext,
   any,
@@ -44,7 +44,7 @@ export const createIssuesMachine = ({
     id: "issues",
     context: {
       issues: [],
-      selected: ""
+      selected: "",
     },
     initial: "loading",
     states: {
@@ -55,20 +55,27 @@ export const createIssuesMachine = ({
           onDone: {
             target: "ready",
             actions: assign({
-              issues: (_, { data }) => data
-            })
-          }
-        }
+              issues: (_, { data }) => data,
+            }),
+          },
+        },
+        on: {
+          SELECT: {
+            actions: () => {
+              console.log("Queue a select up after loading...");
+            },
+          },
+        },
       },
       ready: {
         on: {
           SELECT: {
             target: "issueSelected",
             actions: assign({
-              selected: (_, { id }: any) => id
-            })
-          }
-        }
+              selected: (_, { id }: any) => id,
+            }),
+          },
+        },
       },
       issueSelected: {
         invoke: {
@@ -78,18 +85,18 @@ export const createIssuesMachine = ({
             id: ({ selected }) => selected,
             title: ({ selected, issues }) =>
               issues
-                .filter(issue => issue.number === selected)
-                .map(issue => issue.title)[0]
+                .filter((issue) => issue.number === selected)
+                .map((issue) => issue.title)[0],
           },
           onDone: {
             target: "ready",
             actions: assign({
-              selected: _ => ""
-            })
-          }
-        }
-      }
-    }
+              selected: (_) => "",
+            }),
+          },
+        },
+      },
+    },
   });
 
 export const Issues = ({ issuesRef }) => {
@@ -128,7 +135,7 @@ const Ready = ({ issues, onClickIssue }) => {
       </IonHeader>
       <IonContent>
         <IonList>
-          {issues.map(item => {
+          {issues.map((item) => {
             return (
               <IonItem key={item.id} onClick={() => onClickIssue(item.number)}>
                 {item.title}

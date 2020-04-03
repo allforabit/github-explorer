@@ -3,6 +3,14 @@ import React from "react";
 import { createMachine } from "xstate";
 import { Files } from "./files/files";
 import { Issues } from "./issues";
+import { matchPath } from "react-router";
+
+declare global {
+  interface Window {
+    // add you custom properties and methods
+    matchPath: any;
+  }
+}
 
 /**
  * Pages machine
@@ -20,35 +28,23 @@ type PagesState = {
   context: PagesContext;
 };
 
+/**
+ * Routes config
+ *
+ * Derive state transitions from this
+ */
+const routes = {
+  "/": { event: { type: "FILES" } },
+  "/files": { event: { type: "FILES" } },
+  "/issues": { event: { type: "ISSUES" } }
+};
+
 export const createPagesMachine = ({ history, filesMachine, issuesMachine }) =>
   createMachine<PagesContext, PagesEvent, PagesState>({
     id: "pages",
-    initial: "routing",
-    invoke: {
-      src: () => cb => {
-        const processRoute = pathname => {
-          if (pathname === "/files") {
-            cb({ type: "FILES" });
-          }
-          if (pathname === "/issues") {
-            cb({ type: "ISSUES" });
-          }
-        };
-        processRoute(history.location.pathname);
-        return history.listen(({ pathname }) => {
-          processRoute(pathname);
-        });
-      }
-    },
+    initial: "files",
     states: {
-      routing: {
-        on: {
-          FILES: "files",
-          ISSUES: "issues"
-        }
-      },
       files: {
-        entry: [() => history.push("files")],
         on: {
           ISSUES: {
             target: "issues"
@@ -60,7 +56,6 @@ export const createPagesMachine = ({ history, filesMachine, issuesMachine }) =>
         }
       },
       issues: {
-        entry: [() => history.push("issues")],
         on: {
           FILES: "files"
         },

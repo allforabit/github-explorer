@@ -64,6 +64,7 @@ export const createAppMachine = ({ pagesMachine }) =>
 
 export const App = ({ appRef }) => {
   const [current, send] = useService(appRef);
+
   return (
     <IonApp>
       <IonSplitPane contentId="main">

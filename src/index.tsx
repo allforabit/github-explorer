@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { interpret, Interpreter } from "xstate";
+import { interpret, Interpreter, State } from "xstate";
 import { App, createAppMachine } from "./app";
 import { config } from "./config";
 import { createDirectoryMachine, createFilesMachine } from "./pages/files";
@@ -9,9 +9,21 @@ import { createIssueDetailsMachine } from "./pages/issues/issue-details";
 import { createPagesMachine } from "./pages/pages";
 import * as serviceWorker from "./serviceWorker";
 import { createBrowserHistory } from "history";
-import { from } from "rxjs";
-import { mergeMap, filter, tap } from "rxjs/operators";
+import { from, of } from "rxjs";
+import {
+  mergeMap,
+  filter,
+  tap,
+  expand,
+  combineLatest,
+  distinctUntilChanged,
+  debounceTime,
+} from "rxjs/operators";
 import { matchPath } from "react-router";
+import { routeSync } from "./route-sync";
+import restore from "./manual.json";
+
+console.log({ restore });
 
 /**
  * Fetch
@@ -51,22 +63,13 @@ const {
 // Result should select the item indicated in each path part (currentSubItem)
 
 /**
- * Routes config
- *
- * Derive state transitions from this
- */
-const routes = {
-  "/": { event: { type: "FILES" } },
-  "/files": { event: { type: "FILES" } },
-  "/issues": { event: { type: "ISSUES" } },
-};
-
-/**
  * Initial route event
  *
  * Figure out the initial route event to send to the pages machine based on the
  * pathname
  */
+// TODO restoring to issues gives an error in routeSync
+// For some reason a bare object is being created instead of a proper service
 const initialRouteEvent =
   pathname === "/files" ? "FILES" : pathname === "/issues" ? "ISSUES" : null;
 
@@ -76,11 +79,31 @@ const initialRouteEvent =
  * Will be the state transitioned to by the `initialRouteEvent`, otherwise the
  * default machine initial state
  */
-const restoredState = initialRouteEvent
-  ? pagesMachine.transition(pagesMachine.initialState, {
-      type: initialRouteEvent,
-    })
-  : pagesMachine.initialState;
+// const restoredState = initialRouteEvent
+//   ? pagesMachine.transition(pagesMachine.initialState, {
+//       type: "ISSUES",
+//     })
+//   : pagesMachine.initialState;
+
+const {
+  configuration,
+  transitions,
+  children,
+  ...restoredState
+} = pagesMachine.transition(pagesMachine.initialState, {
+  type: "ISSUES",
+});
+console.log(JSON.stringify(restoredState));
+
+// Retrieving the state definition from localStorage
+// const stateDefinition = JSON.parse(localStorage.getItem("pages-state"));
+const stateDefinition = restore;
+
+// Use State.create() to restore state from a plain object
+const previousState = State.create(stateDefinition as any);
+
+// Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
+const resolvedState = pagesMachine.resolveState(previousState as any);
 
 /**
  * Pages machine restored
@@ -88,15 +111,10 @@ const restoredState = initialRouteEvent
  * Here we restore the state by providing an alternative initial state for the
  * machine
  */
+
 const pagesMachineRestored = {
   ...pagesMachine,
-  initialState: pagesMachine.resolveState(
-    // Only use restored state if it's different (causes an error otherwise for
-    // some reason)
-    restoredState.value === pagesMachine.initialState.value
-      ? pagesMachine.initialState
-      : restoredState
-  ),
+  initialState: resolvedState,
 };
 
 /**
@@ -113,6 +131,8 @@ const appMachine = createAppMachine({
  *
  * Running service that will contain all app functionality
  */
+// TODO restoration will have to happen here for now (via root service)
+// I.e. basic root information will need to propogate upward to root machine
 const appService = interpret(appMachine, { devTools: true }).start();
 
 appService.subscribe((current) => {
@@ -121,23 +141,92 @@ appService.subscribe((current) => {
   console.groupEnd();
 });
 
-const pagesEvts = from(appService).pipe(
-  // Make sure children.pages exists
-  filter((current: any) => !!current.children.pages),
-  mergeMap((current: any) => {
-    return from(current.children.pages);
-  })
-);
+/**
+ * Routes config
+ *
+ * Derive state transitions from this
+ */
+// TODO monitor pop_state for incoming changes
 
-// Process state changes
-pagesEvts.subscribe(({ event }) => {
-  if (event.type === "FILES") {
-    browserHistory.push("/files");
-  }
-  if (event.type === "ISSUES") {
-    browserHistory.push("/issues");
+const unlisten = browserHistory.listen((v, type) => {
+  if (type === "POP") {
+    console.log(v);
   }
 });
+
+// TODO restore initial router state
+
+const routes_ = {
+  "/": { event: { type: "FILES" } },
+  "/files": { event: { type: "FILES" } },
+  "/issues": { event: { type: "ISSUES" } },
+};
+
+// Per machine config by id
+const routes = {
+  pages: (current) => current.value,
+  issues: (current) => current.context.selected,
+  files: (current) => current.value,
+  // Don't seem to be working
+  rootDirectory: (current) => current.context.currentSubItem,
+  subDir: (current) => current.context.currentSubItem,
+};
+
+const appEvents = from(appService);
+
+const pagesEvents = appEvents.pipe(
+  mergeMap((current: any) => from(current.children.pages))
+);
+
+pagesEvents.subscribe((current) => {
+  const jsonState = JSON.stringify(current);
+
+  // Example: persisting to localStorage
+  try {
+    localStorage.setItem("pages-state", jsonState);
+  } catch (e) {
+    // unable to save to localStorage
+  }
+});
+
+const routeUpdates = routeSync(appEvents, routes);
+
+// TODO fix it so in between route events don't occur
+// Temp buffer unneeded route changes
+routeUpdates.subscribe((path: string[]) => {
+  // browserHistory.push(`/${path.join("/")}`, path.join(" "));
+});
+
+// appEvents.subscribe((current) => {
+//   const obs = Object.values(current.children).map((service) =>
+//     from(service as any)
+//   );
+// });
+
+// const routeEvents = appEvents.pipe(
+//   mergeMap((current) => {
+//     const obs = Object.values(current.children).map((service) =>
+//       from(service as any)
+//     );
+//     console.log({ obs });
+//     return combineLatest(...obs);
+//     // return of(999);
+//   })
+// );
+
+// routeEvents.subscribe((services) => {
+//   console.log({ services });
+// });
+
+// // Process state changes
+// pagesEvts.subscribe(({ event }) => {
+//   if (event.type === "FILES") {
+//     browserHistory.push("/files");
+//   }
+//   if (event.type === "ISSUES") {
+//     browserHistory.push("/issues");
+//   }
+// });
 
 ReactDOM.render(<App appRef={appService} />, document.getElementById("root"));
 

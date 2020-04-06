@@ -20,12 +20,12 @@ import {
   IonAvatar,
   IonThumbnail,
   IonMenuButton,
-  IonCard
+  IonCard,
 } from "@ionic/react";
 import {
   documentTextOutline,
   folderOutline,
-  chevronBackOutline
+  chevronBackOutline,
 } from "ionicons/icons";
 import { LoadingScreen } from "../../components/loading-screen";
 
@@ -47,9 +47,14 @@ interface DirectoryMachineParams {
   folderPath: string;
 }
 
+// Should allow for immediately opening a sub directory (and thus not running a
+// fetch for current directory)
+//
+// This may happen on restoring from a route
+
 export const createDirectoryMachine = ({
   fetch,
-  folderPath
+  folderPath,
 }: DirectoryMachineParams): StateMachine<
   DirectoryContext,
   any,
@@ -57,11 +62,11 @@ export const createDirectoryMachine = ({
   DirectoryState
 > =>
   createMachine<DirectoryContext, DirectoryEvent, DirectoryState>({
-    id: "folder",
+    id: "directory",
     context: {
       filesAndDirectories: [],
       currentSubItem: "",
-      path: ""
+      path: "",
     },
     initial: "loading",
     states: {
@@ -72,19 +77,19 @@ export const createDirectoryMachine = ({
           onDone: {
             target: "ready",
             actions: assign({
-              filesAndDirectories: (_, { data }) => data
-            })
-          }
-        }
+              filesAndDirectories: (_, { data }) => data,
+            }),
+          },
+        },
       },
       ready: {
         on: {
           OPEN: {
             target: "focussedOnSub",
-            actions: assign({ currentSubItem: (_, { path }) => path })
+            actions: assign({ currentSubItem: (_, { path }) => path }),
           },
-          CLOSE: "closed"
-        }
+          CLOSE: "closed",
+        },
       },
       focussedOnSub: {
         invoke: {
@@ -92,17 +97,17 @@ export const createDirectoryMachine = ({
           src: ({ currentSubItem }) =>
             createDirectoryMachine({ fetch, folderPath: currentSubItem }),
           onDone: {
-            target: "ready"
+            target: "ready",
           },
           data: {
-            path: ({ currentSubItem }) => currentSubItem
-          }
-        }
+            path: ({ currentSubItem }) => currentSubItem,
+          },
+        },
       },
       closed: {
-        type: "final"
-      }
-    }
+        type: "final",
+      },
+    },
   });
 
 export const Directory = ({ directoryRef, isRoot }: any) => {
@@ -148,7 +153,7 @@ export const Directory = ({ directoryRef, isRoot }: any) => {
       </IonHeader>
       <IonContent>
         <IonList>
-          {filesAndDirectories.map(item => {
+          {filesAndDirectories.map((item) => {
             return <DirectoryItem key={item.path} item={item} send={send} />;
           })}
         </IonList>

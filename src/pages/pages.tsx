@@ -1,6 +1,6 @@
 import { useService } from "@xstate/react";
 import React from "react";
-import { createMachine } from "xstate";
+import { createMachine, send, forwardTo } from "xstate";
 import { Files } from "./files/files";
 import { Issues } from "./issues";
 import { matchPath } from "react-router";
@@ -28,17 +28,6 @@ type PagesState = {
   context: PagesContext;
 };
 
-/**
- * Routes config
- *
- * Derive state transitions from this
- */
-const routes = {
-  "/": { event: { type: "FILES" } },
-  "/files": { event: { type: "FILES" } },
-  "/issues": { event: { type: "ISSUES" } }
-};
-
 export const createPagesMachine = ({ history, filesMachine, issuesMachine }) =>
   createMachine<PagesContext, PagesEvent, PagesState>({
     id: "pages",
@@ -47,29 +36,28 @@ export const createPagesMachine = ({ history, filesMachine, issuesMachine }) =>
       files: {
         on: {
           ISSUES: {
-            target: "issues"
-          }
+            target: "issues",
+          },
         },
         invoke: {
           id: "files",
-          src: filesMachine
-        }
+          src: filesMachine,
+        },
       },
       issues: {
         on: {
-          FILES: "files"
+          FILES: { target: "files" },
         },
         invoke: {
           id: "issues",
-          src: issuesMachine
-        }
-      }
-    }
+          src: issuesMachine,
+        },
+      },
+    },
   });
 
 export const Pages = ({ pagesRef }) => {
   const [current] = useService(pagesRef);
-
   switch (current.value) {
     case "files":
       return <Files filesRef={current.children.files} />;

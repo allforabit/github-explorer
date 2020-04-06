@@ -1,0 +1,80 @@
+{
+  "actions": [
+    {
+      "type": "xstate.stop",
+      "activity": {
+        "id": "files",
+        "type": "xstate.invoke",
+        "src": "pages.files:invocation[0]"
+      }
+    },
+    {
+      "type": "xstate.start",
+      "activity": {
+        "id": "issues",
+        "type": "xstate.invoke",
+        "src": "pages.issues:invocation[0]"
+      }
+    }
+  ],
+  "activities": {
+    "xstate.invoke": {
+      "type": "xstate.start",
+      "activity": {
+        "id": "issues",
+        "type": "xstate.invoke",
+        "src": "pages.issues:invocation[0]"
+      }
+    }
+  },
+  "meta": {},
+  "events": [],
+  "value": "issues",
+  "_event": {
+    "name": "ISSUES",
+    "data": { "type": "ISSUES" },
+    "$$type": "scxml",
+    "type": "external"
+  },
+  "_sessionid": null,
+  "event": { "type": "ISSUES" },
+  "historyValue": { "current": "issues", "states": {} },
+  "history": {
+    "actions": [
+      {
+        "type": "xstate.start",
+        "activity": {
+          "id": "files",
+          "type": "xstate.invoke",
+          "src": "pages.files:invocation[0]"
+        }
+      }
+    ],
+    "activities": {
+      "xstate.invoke": {
+        "type": "xstate.start",
+        "activity": {
+          "id": "files",
+          "type": "xstate.invoke",
+          "src": "pages.files:invocation[0]"
+        }
+      }
+    },
+    "meta": {},
+    "events": [],
+    "value": "files",
+    "_event": {
+      "name": "xstate.init",
+      "data": { "type": "xstate.init" },
+      "$$type": "scxml",
+      "type": "external"
+    },
+    "_sessionid": null,
+    "event": { "type": "xstate.init" },
+    "children": { "files": { "id": "files" } },
+    "done": false
+  },
+  "children": { "files": { "id": "files" }, "issues": { "id": "issues" } },
+  "done": false,
+  "changed": true
+}

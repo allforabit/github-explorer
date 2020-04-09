@@ -93,7 +93,6 @@ const {
 } = pagesMachine.transition(pagesMachine.initialState, {
   type: "ISSUES",
 });
-console.log(JSON.stringify(restoredState));
 
 // Retrieving the state definition from localStorage
 // const stateDefinition = JSON.parse(localStorage.getItem("pages-state"));
@@ -156,46 +155,46 @@ const unlisten = browserHistory.listen((v, type) => {
 
 // TODO restore initial router state
 
-const routes_ = {
-  "/": { event: { type: "FILES" } },
-  "/files": { event: { type: "FILES" } },
-  "/issues": { event: { type: "ISSUES" } },
-};
+// const routes_ = {
+//   "/": { event: { type: "FILES" } },
+//   "/files": { event: { type: "FILES" } },
+//   "/issues": { event: { type: "ISSUES" } },
+// };
 
-// Per machine config by id
-const routes = {
-  pages: (current) => current.value,
-  issues: (current) => current.context.selected,
-  files: (current) => current.value,
-  // Don't seem to be working
-  rootDirectory: (current) => current.context.currentSubItem,
-  subDir: (current) => current.context.currentSubItem,
-};
+// // Per machine config by id
+// const routes = {
+//   pages: (current) => current.value,
+//   issues: (current) => current.context.selected,
+//   files: (current) => current.value,
+//   // Don't seem to be working
+//   rootDirectory: (current) => current.context.currentSubItem,
+//   subDir: (current) => current.context.currentSubItem,
+// };
 
-const appEvents = from(appService);
+// const appEvents = from(appService);
 
-const pagesEvents = appEvents.pipe(
-  mergeMap((current: any) => from(current.children.pages))
-);
+// const pagesEvents = appEvents.pipe(
+//   mergeMap((current: any) => from(current.children.pages))
+// );
 
-pagesEvents.subscribe((current) => {
-  const jsonState = JSON.stringify(current);
+// pagesEvents.subscribe((current) => {
+//   const jsonState = JSON.stringify(current);
 
-  // Example: persisting to localStorage
-  try {
-    localStorage.setItem("pages-state", jsonState);
-  } catch (e) {
-    // unable to save to localStorage
-  }
-});
+//   // Example: persisting to localStorage
+//   try {
+//     localStorage.setItem("pages-state", jsonState);
+//   } catch (e) {
+//     // unable to save to localStorage
+//   }
+// });
 
-const routeUpdates = routeSync(appEvents, routes);
+// const routeUpdates = routeSync(appEvents, routes);
 
-// TODO fix it so in between route events don't occur
-// Temp buffer unneeded route changes
-routeUpdates.subscribe((path: string[]) => {
-  // browserHistory.push(`/${path.join("/")}`, path.join(" "));
-});
+// // TODO fix it so in between route events don't occur
+// // Temp buffer unneeded route changes
+// routeUpdates.subscribe((path: string[]) => {
+//   // browserHistory.push(`/${path.join("/")}`, path.join(" "));
+// });
 
 // appEvents.subscribe((current) => {
 //   const obs = Object.values(current.children).map((service) =>

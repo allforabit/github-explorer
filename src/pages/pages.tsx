@@ -4,6 +4,8 @@ import { createMachine, send, forwardTo } from "xstate";
 import { Files } from "./files/files";
 import { Issues } from "./issues";
 import { matchPath } from "react-router";
+import { BehaviorSubject } from "rxjs";
+import { tap } from "rxjs/operators";
 
 declare global {
   interface Window {
@@ -50,7 +52,12 @@ export const createPagesMachine = ({ history, filesMachine, issuesMachine }) =>
         },
         invoke: {
           id: "issues",
-          src: issuesMachine,
+          src: () =>
+            new BehaviorSubject({ type: "HELLO" }).pipe(
+              tap((x) => {
+                console.log({ x }, "----------------");
+              })
+            ),
         },
       },
     },

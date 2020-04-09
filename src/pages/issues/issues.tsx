@@ -100,24 +100,32 @@ export const createIssuesMachine = ({
   });
 
 export const Issues = ({ issuesRef }) => {
-  const [current, send] = useService(issuesRef);
+  console.log(issuesRef);
 
-  const { context, value } = current;
-  const { issues }: any = context;
+  React.useEffect(() => {
+    issuesRef.send({ type: "HI" });
+  }, []);
 
-  switch (value) {
-    case "loading":
-      return <LoadingScreen />;
-    case "ready":
-      return (
-        <Ready
-          issues={issues}
-          onClickIssue={(id: string) => send({ type: "SELECT", id } as any)}
-        />
-      );
-    case "issueSelected":
-      return <IssueDetails issueDetailsRef={current.children.issueDetails} />;
-  }
+  return null;
+
+  // const [current, send] = useService(issuesRef);
+
+  // const { context, value } = current;
+  // const { issues }: any = context;
+
+  // switch (value) {
+  //   case "loading":
+  //     return <LoadingScreen />;
+  //   case "ready":
+  //     return (
+  //       <Ready
+  //         issues={issues}
+  //         onClickIssue={(id: string) => send({ type: "SELECT", id } as any)}
+  //       />
+  //     );
+  //   case "issueSelected":
+  //     return <IssueDetails issueDetailsRef={current.children.issueDetails} />;
+  // }
 };
 
 const Ready = ({ issues, onClickIssue }) => {
